@@ -97,6 +97,11 @@ namespace Jaeger
         public const string JaegerTags = JaegerPrefix + "TAGS";
 
         /// <summary>
+        /// Whether the tracer should expand exception logs.
+        /// </summary>
+        public const string JaegerExpandExceptionLogs = JaegerPrefix + "EXPAND_EXCEPTION_LOGS";
+
+        /// <summary>
         /// Comma separated list of formats to use for propagating the trace context. Default will the
         /// standard Jaeger format. Valid values are jaeger and b3.
         /// </summary>
@@ -129,6 +134,7 @@ namespace Jaeger
         private CodecConfiguration _codecConfig;
         private IMetricsFactory _metricsFactory;
         private Dictionary<string, string> _tracerTags;
+        private bool _expandExceptionLogs;
 
         /// <summary>
         /// Lazy singleton <see cref="Tracer"/> initialized in <see cref="GetTracer()"/> method.
@@ -154,6 +160,7 @@ namespace Jaeger
 
             return new Configuration(GetProperty(JaegerServiceName), loggerFactory)
                 .WithTracerTags(TracerTagsFromEnv(logger))
+                .WithExpandExceptionLogs(GetPropertyAsBool(JaegerExpandExceptionLogs, logger).GetValueOrDefault(false))
                 .WithReporter(ReporterConfiguration.FromEnv(loggerFactory))
                 .WithSampler(SamplerConfiguration.FromEnv(loggerFactory))
                 .WithCodec(CodecConfiguration.FromEnv(loggerFactory));
@@ -186,6 +193,9 @@ namespace Jaeger
                 .WithReporter(reporter)
                 .WithMetrics(metrics)
                 .WithTags(_tracerTags);
+
+            if (_expandExceptionLogs)
+                builder = builder.WithExpandExceptionLogs();
 
             _codecConfig.Apply(builder);
 
@@ -251,6 +261,12 @@ namespace Jaeger
             {
                 _tracerTags = new Dictionary<string, string>(tracerTags);
             }
+            return this;
+        }
+
+        public Configuration WithExpandExceptionLogs(bool expandExceptionLogs=true)
+        {
+            _expandExceptionLogs = expandExceptionLogs;
             return this;
         }
 
